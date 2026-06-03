@@ -1,0 +1,33 @@
+# Netlify deploy config for the C3 Team Dashboard.
+# Frontend: Vite + React build in client/ -> served statically from client/dist.
+# Backend:  one serverless function for editable team targets (Netlify Blobs).
+#
+# On each deploy the build re-bakes the static dataset
+# (client/public/data/dataset.json) directly from Planning Center via
+# scripts/build-data.mjs, then Vite builds the SPA that reads it. No heavy PCO
+# sync runs at request time. Targets are the only mutable state and live in Blobs.
+#
+# Set these in the Netlify UI (Site settings -> Environment variables) so the
+# build-time sync can reach Planning Center — they are NOT committed:
+#   PCO_APP_ID, PCO_SECRET
+# If they are absent the build keeps the last committed dataset (graceful no-op).
+
+[build]
+  command = "node scripts/build-data.mjs && npm --prefix client install && npm --prefix client run build"
+  publish = "client/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Route the app's /api/* calls to the serverless functions.
+[[redirects]]
+  from = "/api/targets"
+  to = "/.netlify/functions/targets"
+  status = 200
+
+# SPA fallback: everything else serves the built index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

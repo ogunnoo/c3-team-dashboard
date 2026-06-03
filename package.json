@@ -1,0 +1,14 @@
+{
+  "name": "teams-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "node scripts/build-data.mjs && npm --prefix client install && npm --prefix client run build",
+    "sync": "node scripts/build-data.mjs",
+    "bake": "python3 scripts/export_dataset.py"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
