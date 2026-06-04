@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Home from "./components/Home.jsx";
 import Scheduling from "./components/Scheduling.jsx";
 import ServingTeam from "./components/ServingTeam.jsx";
 import Settings from "./components/Settings.jsx";
@@ -7,11 +8,28 @@ import { getTargets, setTarget as apiSetTarget, setTargets as apiSetTargets } fr
 
 const CATEGORIES = ["", "Sunday Services", "Conference", "Events"];
 
+function initialTheme() {
+  if (typeof window === "undefined") return "light";
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
 export default function App() {
   const [data, setData] = useState(null);
   const [targets, setTargets] = useState({});
   const [error, setError] = useState("");
-  const [tab, setTab] = useState("scheduling");
+  const [tab, setTab] = useState("home");
+  const [theme, setTheme] = useState(initialTheme);
+
+  // Apply + persist the theme on <html data-theme>.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   // scheduling filter state
   const [category, setCategory] = useState("Sunday Services");
@@ -79,7 +97,7 @@ export default function App() {
   if (error) {
     return (
       <>
-        <Header lastSynced={null} />
+        <Header lastSynced={null} theme={theme} onToggleTheme={toggleTheme} />
         <div className="status-banner status-banner--red">
           <div className="status-banner-inner">{error}</div>
         </div>
@@ -90,7 +108,7 @@ export default function App() {
   if (!data || !filterOpts) {
     return (
       <>
-        <Header lastSynced={null} />
+        <Header lastSynced={null} theme={theme} onToggleTheme={toggleTheme} />
         <div className="app-loading">Loading dashboard…</div>
       </>
     );
@@ -100,10 +118,16 @@ export default function App() {
 
   return (
     <>
-      <Header lastSynced={data.last_synced} />
+      <Header lastSynced={data.last_synced} theme={theme} onToggleTheme={toggleTheme} />
 
       <nav className="tab-nav">
         <div className="tab-nav-inner">
+          <button
+            className={`tab-btn${tab === "home" ? " tab-btn--active" : ""}`}
+            onClick={() => setTab("home")}
+          >
+            Home
+          </button>
           <button
             className={`tab-btn${tab === "scheduling" ? " tab-btn--active" : ""}`}
             onClick={() => setTab("scheduling")}
@@ -151,9 +175,12 @@ export default function App() {
       )}
 
       <main className="main-content">
-        {tab === "scheduling" && <Scheduling data={data} filters={filters} />}
+        {tab === "home" && (
+          <Home data={data} targets={targets} onNavigate={setTab} />
+        )}
+        {tab === "scheduling" && <Scheduling data={data} filters={filters} theme={theme} />}
         {tab === "orientation" && (
-          <ServingTeam data={data} targets={targets} onSaveTarget={handleSaveTarget} />
+          <ServingTeam data={data} targets={targets} onSaveTarget={handleSaveTarget} theme={theme} />
         )}
         {tab === "settings" && (
           <Settings
@@ -168,7 +195,8 @@ export default function App() {
   );
 }
 
-function Header({ lastSynced }) {
+function Header({ lastSynced, theme, onToggleTheme }) {
+  const dark = theme === "dark";
   return (
     <header className="app-header">
       <div className="header-inner">
@@ -179,16 +207,37 @@ function Header({ lastSynced }) {
             </svg>
           </div>
           <div>
-            <h1 className="app-title">C3 Team Dashboard</h1>
+            <h1 className="app-title display">C3 Team Dashboard</h1>
             <p className="app-subtitle">Service Scheduling Dashboard</p>
           </div>
         </div>
-        {lastSynced && (
-          <span className="sync-badge">
-            <span className="sync-dot" />
-            Synced <span className="sync-time">{lastSynced}</span>
-          </span>
-        )}
+        <div className="header-right">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={onToggleTheme}
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {dark ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+          {lastSynced && (
+            <span className="sync-badge">
+              <span className="sync-dot" />
+              <span className="sync-label">Synced </span>
+              <span className="sync-time">{lastSynced}</span>
+            </span>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import ChartCanvas from "./Chart.jsx";
 import KpiCards from "./KpiCards.jsx";
-import { Sparkline, StatusBadge, TargetInput } from "./StaffingBits.jsx";
+import { StaffingBar, StatusBadge, TargetInput } from "./StaffingBits.jsx";
 import {
   getOrientationTrend,
   getActiveMembersTrend,
   getTeamsOverview,
   getCoachesByCampus,
 } from "../lib/transform.js";
+import { chartColors } from "../lib/theme.js";
 
 const ROLE_LABELS = {
   head_coach: "Head Coaches",
@@ -15,9 +16,8 @@ const ROLE_LABELS = {
   apprentice_coach: "Apprentice Coaches",
 };
 const ROLE_ORDER = ["head_coach", "coach", "apprentice_coach"];
-const ROLE_COLORS = { head_coach: "#16a34a", coach: "#2563eb", apprentice_coach: "#d97706" };
 
-function trendConfig(series, color) {
+function trendConfig(series, color, cc) {
   return {
     type: "line",
     data: {
@@ -35,15 +35,17 @@ function trendConfig(series, color) {
         tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y.toLocaleString()}` } },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
-        y: { grid: { color: "#f1f5f9" }, ticks: { precision: 0 }, beginAtZero: true },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 8, font: { size: 11 }, color: cc.axis } },
+        y: { grid: { color: cc.grid }, ticks: { precision: 0, color: cc.axis }, beginAtZero: true },
       },
     },
   };
 }
 
-export default function ServingTeam({ data, targets, onSaveTarget }) {
+export default function ServingTeam({ data, targets, onSaveTarget, theme }) {
   const [campusId, setCampusId] = useState("");
+  const cc = chartColors(theme);
+  const ROLE_COLORS = { head_coach: cc.headCoach, coach: cc.coach, apprentice_coach: cc.apprentice };
 
   const campuses = useMemo(() => getTeamsOverview(data, {}, null).campuses, [data]);
   const coaches = useMemo(() => getCoachesByCampus(data), [data]);
@@ -61,6 +63,8 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
   }, [campusId, campuses]);
 
   const last = (arr) => (arr.length ? arr[arr.length - 1].count : 0);
+  const monthDelta = (arr) =>
+    arr.length >= 2 ? arr[arr.length - 1].count - arr[arr.length - 2].count : null;
 
   const coachTotal = useMemo(() => {
     let total = 0;
@@ -73,11 +77,25 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
 
   const inNeed = overview.teams.filter((t) => t.in_need).length;
 
+  const orientDelta = monthDelta(orientSeries);
+  const activeDelta = monthDelta(activeSeries);
+
   const kpis = [
-    { label: "Total Oriented", value: last(orientSeries), dot: "#6366f1" },
-    { label: "Active Members", value: last(activeSeries), dot: "#16a34a" },
-    { label: "Teams In Need", value: inNeed, dot: inNeed ? "#ef4444" : "#16a34a" },
-    { label: "Coaches", value: coachTotal, dot: "#18181b" },
+    {
+      label: "Total Oriented",
+      value: last(orientSeries),
+      dot: cc.orient,
+      hero: true,
+      delta: orientDelta != null ? { value: orientDelta, label: "this month" } : null,
+    },
+    {
+      label: "Active Members",
+      value: last(activeSeries),
+      dot: cc.accepted,
+      delta: activeDelta != null ? { value: activeDelta, label: "vs last month" } : null,
+    },
+    { label: "Teams In Need", value: inNeed, dot: inNeed ? cc.declined : cc.accepted },
+    { label: "Coaches", value: coachTotal, dot: "var(--ink)" },
   ];
 
   const coachCampuses = campusName ? [campusName] : coaches.campuses;
@@ -95,12 +113,12 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, font: { size: 12 } } },
+        legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, font: { size: 12 }, color: cc.axis } },
         tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}` } },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#f1f5f9" } },
+        x: { grid: { display: false }, ticks: { font: { size: 12 }, color: cc.axis } },
+        y: { beginAtZero: true, ticks: { precision: 0, color: cc.axis }, grid: { color: cc.grid } },
       },
     },
   };
@@ -126,11 +144,11 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
       <div className="grid-2">
         <div className="card">
           <p className="card-label">Total People Oriented (cumulative)</p>
-          <div className="chart-wrap"><ChartCanvas config={trendConfig(orientSeries, "#6366f1")} /></div>
+          <div className="chart-wrap"><ChartCanvas config={trendConfig(orientSeries, cc.orient, cc)} /></div>
         </div>
         <div className="card">
           <p className="card-label">Active Sunday Team Members (rolling 3-month)</p>
-          <div className="chart-wrap"><ChartCanvas config={trendConfig(activeSeries, "#16a34a")} /></div>
+          <div className="chart-wrap"><ChartCanvas config={trendConfig(activeSeries, cc.accepted, cc)} /></div>
         </div>
       </div>
 
@@ -163,9 +181,8 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
             <thead>
               <tr>
                 <th>Team</th>
-                <th>Active (3&nbsp;mo)</th>
+                <th>Active vs Target</th>
                 <th>Target</th>
-                <th>Trend (12&nbsp;mo)</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -173,9 +190,8 @@ export default function ServingTeam({ data, targets, onSaveTarget }) {
               {overview.teams.map((t) => (
                 <tr key={t.team_name} className={`row-${t.status}`}>
                   <td>{t.team_name}</td>
-                  <td className="muted">{t.active}</td>
-                  <td><TargetInput team={t} onSave={onSaveTarget} /></td>
-                  <td><Sparkline values={t.trend} status={t.status} /></td>
+                  <td><StaffingBar team={t} /></td>
+                  <td><TargetInput key={t.target ?? "empty"} team={t} onSave={onSaveTarget} /></td>
                   <td><StatusBadge team={t} /></td>
                 </tr>
               ))}

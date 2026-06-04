@@ -1,4 +1,36 @@
 const STATUS_COLOR = { green: "#16a34a", yellow: "#d97706", red: "#dc2626", none: "#6366f1" };
+const STATUS_FILL = { green: "g", yellow: "y", red: "r" };
+
+// Active-vs-target progress bar: fill scales with attainment %, a tick marks the
+// target (100%), and the meta line spells out active / target · % · shortfall.
+export function StaffingBar({ team }) {
+  const { active, target, status } = team;
+  if (target == null || target === 0) {
+    return (
+      <div className="staff-bar-wrap">
+        <div className="staff-bar"><span className="staff-fill staff-fill--none" /></div>
+        <div className="staff-meta"><b>{active}</b> active · no target set</div>
+      </div>
+    );
+  }
+  const pct = Math.round((active / target) * 100);
+  const fillWidth = Math.min(pct, 100);
+  // When over target, the tick sits inside the (capped) bar at target's position.
+  const tickLeft = pct > 100 ? `${(10000 / pct).toFixed(1)}%` : "100%";
+  const short = target - active;
+  const cls = STATUS_FILL[status] || "none";
+  return (
+    <div className="staff-bar-wrap">
+      <div className="staff-bar">
+        <span className={`staff-fill staff-fill--${cls}`} style={{ width: `${fillWidth}%` }} />
+        <span className="staff-tick" style={{ left: tickLeft }} />
+      </div>
+      <div className="staff-meta">
+        <b>{active}</b> / {target} · {pct}%{short > 0 ? ` · ${short} short` : ""}
+      </div>
+    </div>
+  );
+}
 
 export function Sparkline({ values, status }) {
   if (!values || !values.length) return null;
