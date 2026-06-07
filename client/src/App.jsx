@@ -52,7 +52,7 @@ export default function App() {
     })();
   }, []);
 
-  // ── open Settings from the gear icon on the Serving Team tab ────────────────
+  // ── open Settings from the gear icon on the Staffing tab ────────────────────
   useEffect(() => {
     const open = () => setTab("settings");
     window.addEventListener("open-settings", open);
@@ -138,7 +138,7 @@ export default function App() {
             className={`tab-btn${tab === "orientation" ? " tab-btn--active" : ""}`}
             onClick={() => setTab("orientation")}
           >
-            Serving Team
+            Staffing
           </button>
         </div>
       </nav>

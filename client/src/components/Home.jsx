@@ -45,7 +45,7 @@ export default function Home({ data, targets, onNavigate }) {
   const responses = sched.accepted + sched.declined + sched.unresponsive;
   const acceptRate = responses ? Math.round((sched.accepted / responses) * 100) : 0;
 
-  // Serving Team headline stats.
+  // Staffing headline stats.
   const overview = useMemo(() => getTeamsOverview(data, targets, null, 12), [data, targets]);
   const inNeed = overview.teams.filter((t) => t.in_need).length;
   const activeSeries = useMemo(() => getActiveMembersTrend(data, null), [data]);
@@ -93,7 +93,7 @@ export default function Home({ data, targets, onNavigate }) {
         <button type="button" className="home-card" onClick={() => onNavigate("orientation")}>
           <div className="home-card-top">
             <span className="home-card-icon"><TeamIcon /></span>
-            <span className="home-card-title">Serving Team</span>
+            <span className="home-card-title">Staffing</span>
           </div>
           <p className="home-card-desc">
             Orientation and active-member trends, coaches by campus, and team staffing versus
@@ -104,7 +104,7 @@ export default function Home({ data, targets, onNavigate }) {
             <Stat value={fmt(inNeed)} label="Teams In Need" alert={inNeed > 0} />
             <Stat value={fmt(coachTotal)} label="Coaches" />
           </div>
-          <span className="home-card-cta">Open Serving Team <Arrow /></span>
+          <span className="home-card-cta">Open Staffing <Arrow /></span>
         </button>
       </div>
     </div>

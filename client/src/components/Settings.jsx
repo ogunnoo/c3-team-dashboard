@@ -30,7 +30,7 @@ export default function Settings({ data, targets, onSaveTarget, onBulkSet }) {
         <p className="settings-help">
           Each team is assigned a <strong>suggested target</strong> equal to its highest
           rolling-3-month headcount over the last year. Adjust any value below — changes save
-          automatically and flag the team on the <strong>Serving Team</strong> tab.
+          automatically and flag the team on the <strong>Staffing</strong> tab.
         </p>
         <div className="legend">
           <span className="legend-item"><span className="legend-dot legend-dot--green" /> On target (≥100%)</span>
