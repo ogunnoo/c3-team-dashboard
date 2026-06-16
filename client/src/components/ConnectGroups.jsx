@@ -10,6 +10,18 @@ const STATUS_OPTIONS = [
   { value: "out", label: "Not in a Connect Group" },
 ];
 
+function toCSV(rows) {
+  const head = ["Name", "Team", "Campus", "Connect Group"];
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [head.join(",")];
+  for (const r of rows) {
+    lines.push([
+      r.name, r.team_name, r.campus_name, r.in_group ? "In a group" : "Not in a group",
+    ].map(esc).join(","));
+  }
+  return lines.join("\n");
+}
+
 export default function ConnectGroups({ data, theme }) {
   const [campusId, setCampusId] = useState("");
   const [teamName, setTeamName] = useState("");
@@ -23,6 +35,16 @@ export default function ConnectGroups({ data, theme }) {
     () => getConnectGroups(data, { campusId, teamName, status }),
     [data, campusId, teamName, status]
   );
+
+  function exportCSV() {
+    const blob = new Blob([toCSV(result.rows)], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "connect-groups.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const kpis = [
     { label: "People Scheduled", value: result.total, dot: "#18181b", hero: true },
@@ -116,6 +138,14 @@ export default function ConnectGroups({ data, theme }) {
           <span className="table-count">
             {result.rows.length ? `${result.rows.length.toLocaleString()} ${result.rows.length === 1 ? "person" : "people"}` : ""}
           </span>
+          <button
+            onClick={exportCSV}
+            className="btn-ghost"
+            style={{ marginLeft: "auto" }}
+            disabled={result.rows.length === 0}
+          >
+            Export CSV
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="data-table">
