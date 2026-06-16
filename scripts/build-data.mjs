@@ -30,6 +30,10 @@ const COACH_GROUP_TYPES = {
   "Apprentice Coach Group": "apprentice_coach",
 };
 
+// Group type whose members are tracked for the Connect Groups tab. Every person
+// in any group of this type is considered "in a Connect Group".
+const CONNECT_GROUP_TYPE = "Connect Groups";
+
 const log = (msg) => console.log(msg);
 
 // ── mappings (ports of database.derive_category / sync.get_period_key) ────────
@@ -169,21 +173,28 @@ export async function buildDataset(client) {
   }
   log(`  → ${orientations.length} orientation submissions`);
 
-  // ── 6. Coaches (leaders of coach groups) ───────────────────────────────────
-  log("Syncing coaches from Groups…");
+  // ── 6. Coaches + Connect Group members (from Groups) ───────────────────────
+  log("Syncing coaches and Connect Group members from Groups…");
+  const groupTypes = await client.getGroupTypes();
   const coachRoles = new Map(); // `${personId}|${role}` -> { p, role, c }
   const campusCache = new Map();
-  for (const gt of await client.getGroupTypes()) {
-    const role = COACH_GROUP_TYPES[gt.attributes?.name || ""];
-    if (!role) continue;
+  const connectMembers = new Set(); // person IDs in any Connect Group
+  for (const gt of groupTypes) {
+    const gtName = gt.attributes?.name || "";
+    const role = COACH_GROUP_TYPES[gtName];
+    const isConnect = gtName === CONNECT_GROUP_TYPE;
+    if (!role && !isConnect) continue;
     const groups = await client.getGroups(gt.id);
-    log(`  ${gt.attributes?.name}: ${groups.length} groups`);
+    log(`  ${gtName}: ${groups.length} groups`);
     for (const g of groups) {
       for (const m of await client.getGroupMemberships(g.id)) {
-        if ((m.attributes?.role || "").toLowerCase() !== "leader") continue;
-        const personRel = m.relationships?.person?.data;
-        const pid = personRel ? personRel.id : null;
+        const pid = m.relationships?.person?.data?.id || null;
         if (!pid) continue;
+        if (isConnect) {
+          connectMembers.add(pid);
+          continue;
+        }
+        if ((m.attributes?.role || "").toLowerCase() !== "leader") continue;
         if (!campusCache.has(pid)) {
           try {
             campusCache.set(pid, await client.getPersonCampus(pid));
@@ -195,7 +206,7 @@ export async function buildDataset(client) {
       }
     }
   }
-  log(`  → ${coachRoles.size} coach role assignments`);
+  log(`  → ${coachRoles.size} coach role assignments, ${connectMembers.size} Connect Group members`);
 
   // ── Collapse into the dataset shape (mirrors export_dataset.py) ─────────────
   // rows: GROUP BY (person, team-name, plan-campus, month, period, category, status)
@@ -248,6 +259,7 @@ export async function buildDataset(client) {
     roster,
     orientations,
     coaches: [...coachRoles.values()],
+    connect_groups: [...connectMembers],
   };
 }
 

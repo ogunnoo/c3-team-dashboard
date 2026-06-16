@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Home from "./components/Home.jsx";
 import Scheduling from "./components/Scheduling.jsx";
 import ServingTeam from "./components/ServingTeam.jsx";
+import ConnectGroups from "./components/ConnectGroups.jsx";
 import Settings from "./components/Settings.jsx";
 import { getFilters } from "./lib/transform.js";
 import { getTargets, setTarget as apiSetTarget, setTargets as apiSetTargets } from "./lib/api.js";
@@ -140,6 +141,12 @@ export default function App() {
           >
             Staffing
           </button>
+          <button
+            className={`tab-btn${tab === "connect" ? " tab-btn--active" : ""}`}
+            onClick={() => setTab("connect")}
+          >
+            Connect Groups
+          </button>
         </div>
       </nav>
 
@@ -182,6 +189,7 @@ export default function App() {
         {tab === "orientation" && (
           <ServingTeam data={data} targets={targets} onSaveTarget={handleSaveTarget} theme={theme} />
         )}
+        {tab === "connect" && <ConnectGroups data={data} theme={theme} />}
         {tab === "settings" && (
           <Settings
             data={data}

@@ -382,6 +382,53 @@ export function suggestedTargets(data) {
   return out;
 }
 
+// ── connect groups ───────────────────────────────────────────────────────────
+// "People on the team" = recently scheduled people (those appearing in rows),
+// scoped by campus + team. Each is flagged in/out of a Connect Group. The donut
+// reflects the campus+team universe; `status` ("in" | "out") filters the table.
+export function getConnectGroups(data, { campusId, teamName, status } = {}) {
+  const synced = Array.isArray(data.connect_groups);
+  const inSet = new Set(data.connect_groups || []);
+  const rows = filterRows(data.rows, { campusId, teamName });
+  const nameMap = campusNameMap(data);
+
+  const byPerson = new Map(); // pid -> { teams:Set, campuses:Set }
+  for (const r of rows) {
+    let g = byPerson.get(r.p);
+    if (!g) { g = { teams: new Set(), campuses: new Set() }; byPerson.set(r.p, g); }
+    g.teams.add(r.t);
+    if (r.c) g.campuses.add(nameMap.get(r.c) || r.c);
+  }
+
+  let inCount = 0, outCount = 0;
+  const people = [];
+  for (const [pid, g] of byPerson) {
+    const inGroup = inSet.has(pid);
+    if (inGroup) inCount++; else outCount++;
+    people.push({
+      name: data.names[pid] || "",
+      team_name: g.teams.size ? [...g.teams].sort().join(", ") : null,
+      campus_name: g.campuses.size ? [...g.campuses].sort().slice(-1)[0] : null,
+      in_group: inGroup,
+    });
+  }
+
+  let tableRows = people;
+  if (status === "in") tableRows = people.filter((p) => p.in_group);
+  else if (status === "out") tableRows = people.filter((p) => !p.in_group);
+  tableRows.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+  const total = inCount + outCount;
+  return {
+    synced,
+    total,
+    in_count: inCount,
+    out_count: outCount,
+    in_pct: total ? Math.round((inCount / total) * 100) : 0,
+    rows: tableRows,
+  };
+}
+
 // ── coaches by campus (mirrors get_coaches_by_campus) ────────────────────────
 export function getCoachesByCampus(data) {
   const nameMap = campusNameMap(data);

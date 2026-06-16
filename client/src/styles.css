@@ -411,6 +411,29 @@ body {
 .gl-item b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .gl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
+/* In-content notice (e.g. data not yet synced). */
+.notice {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid;
+}
+.notice code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--warn-ink) 12%, transparent);
+}
+.notice--warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn-ink) 28%, transparent); color: var(--warn-ink); }
+
+/* Connect Groups summary card. */
+.connect-summary { display: flex; flex-direction: column; }
+.connect-summary-lead { font-size: 18px; line-height: 1.45; color: var(--ink); }
+.connect-summary-lead b { font-family: 'Space Grotesk', 'Inter', sans-serif; font-weight: 700; }
+.connect-summary-sub { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
 /* ── Home landing ────────────────────────────────────────────────────────── */
 .home-hero { margin-bottom: 24px; }
 .home-eyebrow {
